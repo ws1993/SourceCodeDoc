@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>源程序文档生成器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 紧凑标题栏 -->
+        <header class="header">
+            <h1>源程序Word文档生成器</h1>
+            <p class="subtitle">软件著作权申请专用工具</p>
+        </header>
+
+        <!-- 主要内容区域 - 两列布局 -->
+        <main class="main-content">
+            <!-- 左列：文件选择和设置 -->
+            <div class="left-column">
+                <!-- 文件选择区域 -->
+                <section class="file-selection">
+                    <h2>选择源代码</h2>
+                    <div class="selection-buttons">
+                        <button id="selectFiles" class="btn btn-primary">
+                            <span class="icon">📄</span>
+                            选择文件
+                        </button>
+                        <button id="selectFolder" class="btn btn-primary">
+                            <span class="icon">📁</span>
+                            选择文件夹
+                        </button>
+                        <button id="clearSelection" class="btn btn-secondary" style="display: none;">
+                            <span class="icon">🗑️</span>
+                            清空
+                        </button>
+                    </div>
+
+                    <!-- 拖拽区域 -->
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-content">
+                            <span class="drop-icon">⬇️</span>
+                            <p>拖拽文件或文件夹到此处</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 设置区域 -->
+                <section class="settings">
+                    <h2>文档设置</h2>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="linesPerPage">每页行数</label>
+                            <input type="number" id="linesPerPage" value="50" min="30" max="100">
+                            <small class="setting-hint">系统会自动调整字体大小，确保每页正好显示指定行数并铺满页面</small>
+                        </div>
+                        <div class="setting-item">
+                            <label for="headerText">页眉文本</label>
+                            <input type="text" id="headerText" value="源程序V1.0" placeholder="例：xxxV1.0">
+                        </div>
+                        <div class="setting-item">
+                            <label for="pageMode">页码模式</label>
+                            <select id="pageMode">
+                                <option value="all">输出全部页面</option>
+                                <option value="partial">前30页+后30页</option>
+                            </select>
+                        </div>
+                        <div class="setting-item checkbox-group">
+                            <label>
+                                <input type="checkbox" id="removeComments" checked>
+                                移除注释
+                            </label>
+                            <label>
+                                <input type="checkbox" id="removeEmptyLines" checked>
+                                移除空行
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 生成按钮 -->
+                <div class="generate-section">
+                    <button id="generateBtn" class="btn btn-success" disabled>
+                        <span class="icon">📄</span>
+                        生成Word文档
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右列：文件列表和预览 -->
+            <div class="right-column">
+                <!-- 已选择的路径列表 -->
+                <div id="pathList" class="path-list" style="display: none;">
+                    <h3>已选择的位置</h3>
+                    <div id="pathItems" class="path-items"></div>
+                </div>
+
+                <!-- 已选择的文件列表 -->
+                <div id="fileList" class="file-list" style="display: none;">
+                    <h3>已选择的文件</h3>
+                    <div id="fileItems" class="file-items"></div>
+                    <div class="file-stats">
+                        <span id="fileCount">0</span> 个文件，
+                        <span id="totalLines">0</span> 行代码
+                    </div>
+                </div>
+
+                <!-- 预览区域 -->
+                <div class="preview" id="preview" style="display: none;">
+                    <h3>文档预览</h3>
+                    <div class="preview-stats">
+                        <span>预计页数：<span id="estimatedPages">0</span></span>
+                        <span>总行数：<span id="previewLines">0</span></span>
+                    </div>
+                    <div id="previewContent" class="preview-content"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 进度提示 -->
+        <div id="progressModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="progress-container">
+                    <div class="spinner"></div>
+                    <p id="progressText">正在处理文件...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <footer class="status-bar">
+            <span id="statusText">就绪</span>
+        </footer>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

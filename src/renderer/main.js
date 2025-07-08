@@ -4,7 +4,7 @@ let selectedPaths = new Set(); // 用于跟踪已选择的路径，避免重复
 let parsedCode = '';
 let currentSettings = {
     linesPerPage: 50,
-    headerText: '源程序V1.0',
+    headerText: '',
     outputFormat: 'docx',
     pageMode: 'all',
     removeComments: true,

@@ -21,9 +21,6 @@ async function parseCode(files, options = {}) {
             const languageType = getLanguageType(file.path);
             let content = file.content;
 
-            // 添加文件头注释（包含文件路径）
-            const fileHeader = `// 文件: ${file.path}`;
-
             if (removeComments) {
                 content = removeCodeComments(content, languageType);
             }
@@ -37,11 +34,11 @@ async function parseCode(files, options = {}) {
                 // 文件之间紧密连接，不添加额外空行
                 if (totalContent) {
                     // 确保上一个文件内容不以空行结尾，然后添加新文件
-                    totalContent = totalContent.trimEnd() + '\n' + fileHeader + '\n' + content.trim();
-                    totalLines += content.split('\n').length + 1; // +1 for header
+                    totalContent = totalContent.trimEnd() + '\n' + content.trim();
+                    totalLines += content.split('\n').length;
                 } else {
-                    totalContent = fileHeader + '\n' + content.trim();
-                    totalLines += content.split('\n').length + 1; // +1 for header
+                    totalContent = content.trim();
+                    totalLines += content.split('\n').length;
                 }
             }
 

@@ -14,7 +14,7 @@ if (args.length === 0) {
     console.log('选项:');
     console.log('  --output <路径>     输出文件路径 (默认: output.docx)');
     console.log('  --lines <数量>      每页行数 (默认: 50)');
-    console.log('  --header <文本>     页眉文本 (默认: 源程序V1.0)');
+    console.log('  --header <文本>     页眉文本 (默认: )');
     console.log('  --mode <模式>       页码模式: all|partial (默认: all)');
     console.log('');
     console.log('示例:');
@@ -26,7 +26,7 @@ if (args.length === 0) {
 const inputFile = args[0];
 let outputFile = 'output.docx';
 let linesPerPage = 50;
-let headerText = '源程序V1.0';
+let headerText = '';
 let pageMode = 'all';
 
 for (let i = 1; i < args.length; i += 2) {

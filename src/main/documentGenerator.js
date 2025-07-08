@@ -12,7 +12,7 @@ async function generateDocument(options) {
         content,
         savePath,
         linesPerPage = 50,
-        headerText = '源程序V1.0',
+        headerText = '',
         pageMode = 'all'
     } = options;
 

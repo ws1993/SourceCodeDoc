@@ -43,12 +43,23 @@ function processContentByPageMode(content, linesPerPage, pageMode) {
     const totalPages = pageDistribution.totalPages;
 
     if (pageMode === 'partial' && totalPages > 60) {
-        // 前30页 + 后30页模式
+        // 前30页 + 后30页模式（只有当总页数大于60时才使用）
         // 提取前30页的内容
         const firstPageContent = extractPagesContent(pageDistribution, 1, 30);
 
-        // 计算后30页的起始页码
+        // 计算后30页的起始页码，确保不与前30页重叠
         const backStartPage = totalPages - 29; // 后30页从第(总页数-29)页开始
+
+        // 确保后30页的起始页码大于30（避免重叠）
+        if (backStartPage <= 30) {
+            // 如果会重叠，说明总页数不够，直接输出全部页面
+            return {
+                content: content,
+                totalPages: totalPages,
+                outputPages: totalPages,
+                pageRanges: [{ start: 1, end: totalPages, content: lines }]
+            };
+        }
 
         // 提取后30页的内容
         const lastPageContent = extractPagesContent(pageDistribution, backStartPage, totalPages);

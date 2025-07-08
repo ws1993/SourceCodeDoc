@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { Document, Packer, Paragraph, TextRun, Header, Footer, PageNumber, AlignmentType, PageNumberStart } = require('docx');
+const { Document, Packer, Paragraph, TextRun, Header, Footer, PageNumber, AlignmentType, PageNumberStart, SectionType } = require('docx');
 
 /**
  * 生成文档
@@ -43,23 +43,12 @@ function processContentByPageMode(content, linesPerPage, pageMode) {
     const totalPages = pageDistribution.totalPages;
 
     if (pageMode === 'partial' && totalPages > 60) {
-        // 前30页 + 后30页模式（只有当总页数大于60时才使用）
+        // 前30页 + 后30页模式
         // 提取前30页的内容
         const firstPageContent = extractPagesContent(pageDistribution, 1, 30);
 
-        // 计算后30页的起始页码，确保不与前30页重叠
+        // 计算后30页的起始页码
         const backStartPage = totalPages - 29; // 后30页从第(总页数-29)页开始
-
-        // 确保后30页的起始页码大于30（避免重叠）
-        if (backStartPage <= 30) {
-            // 如果会重叠，说明总页数不够，直接输出全部页面
-            return {
-                content: content,
-                totalPages: totalPages,
-                outputPages: totalPages,
-                pageRanges: [{ start: 1, end: totalPages, content: lines }]
-            };
-        }
 
         // 提取后30页的内容
         const lastPageContent = extractPagesContent(pageDistribution, backStartPage, totalPages);
@@ -258,20 +247,14 @@ async function generateWordWithMultipleSections(content, savePath, options) {
         const rangeContent = Array.isArray(range.content) ? range.content.join('\n') : range.content;
         const rangeLines = rangeContent.split('\n');
 
-        // 为该范围创建带有正确页码的段落
-        const paragraphs = createParagraphsWithCustomPageNumbers(
-            rangeLines,
-            linesPerPage,
-            fontSize,
-            lineSpacing,
-            range,
-            pageInfo.totalPages
-        );
+        // 创建该范围的段落
+        const paragraphResult = createParagraphsFromLines(rangeLines, linesPerPage, fontSize, lineSpacing, pageInfo);
+        const paragraphs = paragraphResult.paragraphs;
 
-        // 创建该范围的页眉页脚（不包含页码，因为页码已经在段落中）
+        // 创建该范围的页眉页脚
         const headerFooterOptions = createHeaderFooterForRange(headerText, pageInfo, range, rangeIndex);
 
-        // 创建section属性
+        // 创建section属性，设置页码起始值
         const sectionProperties = {
             page: {
                 margin: {
@@ -282,6 +265,16 @@ async function generateWordWithMultipleSections(content, savePath, options) {
                 }
             }
         };
+
+        // 为不同的section设置页码起始值
+        if (rangeIndex === 1) {
+            // 后30页section，设置页码起始值和section类型
+            sectionProperties.pageNumberStart = range.start;
+            sectionProperties.type = SectionType.NEXT_PAGE;
+        } else if (rangeIndex === 0) {
+            // 第一个section，重置页码编号
+            sectionProperties.pageNumberStart = 1;
+        }
 
         // 创建section
         const section = {
@@ -300,103 +293,6 @@ async function generateWordWithMultipleSections(content, savePath, options) {
     // 生成并保存文档
     const buffer = await Packer.toBuffer(doc);
     await fs.writeFile(savePath, buffer);
-}
-
-/**
- * 为多section模式创建带有自定义页码的段落
- * @param {string[]} lines - 行数组
- * @param {number} linesPerPage - 每页行数
- * @param {number} fontSize - 字体大小
- * @param {number} lineSpacing - 行间距
- * @param {Object} range - 页面范围信息
- * @param {number} totalPages - 总页数
- * @returns {Array} 段落数组
- */
-function createParagraphsWithCustomPageNumbers(lines, linesPerPage, fontSize, lineSpacing, range, totalPages) {
-    const paragraphs = [];
-    let currentLineInPage = 0;
-    let currentPageInRange = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 跳过完全空白的行
-        if (!line || line.trim() === '') {
-            continue;
-        }
-
-        // 检查是否需要分页
-        if (currentLineInPage >= linesPerPage && currentLineInPage > 0) {
-            // 添加页脚（页码）到当前页的最后
-            const currentActualPage = range.start + currentPageInRange;
-            paragraphs.push(createPageFooterParagraph(currentActualPage, totalPages));
-
-            // 开始新页
-            currentPageInRange++;
-            currentLineInPage = 0;
-
-            // 添加分页符
-            paragraphs.push(
-                new Paragraph({
-                    children: [new TextRun({ text: '' })],
-                    pageBreakBefore: true,
-                    spacing: { before: 0, after: 0 }
-                })
-            );
-        }
-
-        // 添加当前行
-        paragraphs.push(
-            new Paragraph({
-                children: [
-                    new TextRun({
-                        text: line,
-                        font: 'Times New Roman',
-                        size: fontSize
-                    })
-                ],
-                spacing: {
-                    line: lineSpacing,
-                    lineRule: 'exact',
-                    before: 0,
-                    after: 0
-                }
-            })
-        );
-
-        currentLineInPage++;
-    }
-
-    // 为最后一页添加页脚
-    if (currentLineInPage > 0) {
-        const currentActualPage = range.start + currentPageInRange;
-        paragraphs.push(createPageFooterParagraph(currentActualPage, totalPages));
-    }
-
-    return paragraphs;
-}
-
-/**
- * 创建页脚段落（显示页码）
- * @param {number} currentPage - 当前页码
- * @param {number} totalPages - 总页数
- * @returns {Paragraph} 页脚段落
- */
-function createPageFooterParagraph(currentPage, totalPages) {
-    return new Paragraph({
-        children: [
-            new TextRun({
-                text: `${currentPage}/${totalPages}`,
-                font: 'Times New Roman',
-                size: 20
-            })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: {
-            before: 400, // 在页脚前添加一些空间
-            after: 0
-        }
-    });
 }
 
 /**
@@ -553,6 +449,19 @@ function createHeaderFooter(headerText, pageInfo) {
  * @returns {Object} 页眉页脚配置
  */
 function createHeaderFooterForRange(headerText, pageInfo, range, rangeIndex) {
+    const totalPages = pageInfo.totalPages;
+
+    // 创建页脚内容 - 使用标准的页码显示
+    // 由于设置了pageNumberStart，每个section会显示正确的页码
+    const footerChildren = [
+        new TextRun({
+            children: [PageNumber.CURRENT]
+        }),
+        new TextRun({
+            text: `/${totalPages}`
+        })
+    ];
+
     return {
         headers: {
             default: new Header({
@@ -575,12 +484,7 @@ function createHeaderFooterForRange(headerText, pageInfo, range, rangeIndex) {
             default: new Footer({
                 children: [
                     new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: '', // 空的页脚，因为页码现在在段落中显示
-                                size: 1
-                            })
-                        ],
+                        children: footerChildren,
                         alignment: AlignmentType.CENTER
                     })
                 ]

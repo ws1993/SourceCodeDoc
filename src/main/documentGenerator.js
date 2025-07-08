@@ -3,6 +3,96 @@ const path = require('path');
 const { Document, Packer, Paragraph, TextRun, Header, Footer, PageNumber, AlignmentType } = require('docx');
 
 /**
+ * 根据页码模式处理内容
+ * @param {string} content - 原始内容
+ * @param {number} linesPerPage - 每页行数
+ * @param {string} pageMode - 页码模式
+ * @param {string} pageRange - 自定义页码范围
+ * @returns {Object} 处理结果包含内容和页码信息
+ */
+function processContentByPageMode(content, linesPerPage, pageMode, pageRange = '') {
+    const lines = content.split('\n');
+    const totalPages = Math.ceil(lines.length / linesPerPage);
+    
+    if (pageMode === 'custom' && pageRange) {
+        try {
+            const customPages = parsePageRange(pageRange, totalPages);
+            const selectedContent = [];
+            
+            customPages.forEach(pageNum => {
+                const startLine = (pageNum - 1) * linesPerPage;
+                const endLine = Math.min(startLine + linesPerPage, lines.length);
+                const pageLines = lines.slice(startLine, endLine);
+                selectedContent.push(...pageLines);
+            });
+            
+            return {
+                content: selectedContent.join('\n'),
+                totalPages: totalPages,
+                outputPages: customPages.length,
+                customPages: customPages,
+                pageRanges: customPages.map(pageNum => ({
+                    page: pageNum,
+                    start: (pageNum - 1) * linesPerPage,
+                    end: Math.min(pageNum * linesPerPage, lines.length)
+                }))
+            };
+        } catch (error) {
+            throw new Error(`页码范围解析错误: ${error.message}`);
+        }
+    }
+    
+    // 全部页面
+    return {
+        content: content,
+        totalPages: totalPages,
+        outputPages: totalPages,
+        pageRanges: [{ start: 1, end: totalPages, content: lines }]
+    };
+}
+
+/**
+ * 解析页码范围字符串
+ * @param {string} rangeStr - 页码范围字符串
+ * @param {number} totalPages - 总页数
+ * @returns {Array} 页码数组
+ */
+function parsePageRange(rangeStr, totalPages) {
+    const pages = [];
+    const ranges = rangeStr.split(',');
+    
+    for (const range of ranges) {
+        const trimmedRange = range.trim();
+        
+        if (trimmedRange.includes('-')) {
+            const [start, end] = trimmedRange.split('-').map(num => parseInt(num.trim()));
+            
+            if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
+                throw new Error(`无效的页码范围: ${trimmedRange}`);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                if (!pages.includes(i)) {
+                    pages.push(i);
+                }
+            }
+        } else {
+            const page = parseInt(trimmedRange);
+            
+            if (isNaN(page) || page < 1 || page > totalPages) {
+                throw new Error(`无效的页码: ${trimmedRange}`);
+            }
+            
+            if (!pages.includes(page)) {
+                pages.push(page);
+            }
+        }
+    }
+    
+    return pages.sort((a, b) => a - b);
+}
+
+/**
  * 生成文档
  * @param {Object} options - 生成选项
  * @returns {Promise<void>}
@@ -13,61 +103,21 @@ async function generateDocument(options) {
         savePath,
         linesPerPage = 50,
         headerText = '',
-        pageMode = 'all'
+        pageMode = 'all',
+        pageRange = ''
     } = options;
 
     // 处理页码模式
-    const processedResult = processContentByPageMode(content, linesPerPage, pageMode);
+    const processedResult = processContentByPageMode(content, linesPerPage, pageMode, pageRange);
 
-    // 只生成Word文档
+    // 生成Word文档
     await generateWord(processedResult.content, savePath, {
         linesPerPage,
         headerText,
         pageMode,
+        pageRange,
         pageInfo: processedResult
     });
-}
-
-/**
- * 根据页码模式处理内容
- * @param {string} content - 原始内容
- * @param {number} linesPerPage - 每页行数
- * @param {string} pageMode - 页码模式
- * @returns {Object} 处理结果包含内容和页码信息
- */
-function processContentByPageMode(content, linesPerPage, pageMode) {
-    const lines = content.split('\n');
-    const totalPages = Math.ceil(lines.length / linesPerPage);
-    
-    if (pageMode === 'partial' && totalPages > 60) {
-        // 前30页 + 后30页
-        const firstPartEnd = 30 * linesPerPage;
-        const secondPartStart = lines.length - (30 * linesPerPage);
-        
-        const firstPart = lines.slice(0, firstPartEnd);
-        const secondPart = lines.slice(secondPartStart);
-        
-        // 计算后30页的起始页码
-        const backStartPage = totalPages - 29; // 后30页从第(总页数-29)页开始
-        
-        return {
-            content: [...firstPart, ...secondPart].join('\n'),
-            totalPages: totalPages,
-            outputPages: 60,
-            pageRanges: [
-                { start: 1, end: 30, content: firstPart },
-                { start: backStartPage, end: totalPages, content: secondPart }
-            ]
-        };
-    }
-    
-    // 全部页面或总页数不超过60页
-    return {
-        content: content,
-        totalPages: totalPages,
-        outputPages: totalPages,
-        pageRanges: [{ start: 1, end: totalPages, content: lines }]
-    };
 }
 
 /**

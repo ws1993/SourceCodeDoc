@@ -7,6 +7,7 @@ let currentSettings = {
     headerText: '',
     outputFormat: 'docx',
     pageMode: 'all',
+    pageRange: '',
     removeComments: true,
     removeEmptyLines: true
 };
@@ -26,6 +27,8 @@ const elements = {
     linesPerPage: document.getElementById('linesPerPage'),
     headerText: document.getElementById('headerText'),
     pageMode: document.getElementById('pageMode'),
+    pageRange: document.getElementById('pageRange'),
+    customPageRange: document.getElementById('customPageRange'),
     removeComments: document.getElementById('removeComments'),
     removeEmptyLines: document.getElementById('removeEmptyLines'),
     preview: document.querySelector('.preview'),
@@ -53,12 +56,26 @@ function initializeEventListeners() {
     // 设置变更
     elements.linesPerPage.addEventListener('change', updateSettings);
     elements.headerText.addEventListener('input', updateSettings);
-    elements.pageMode.addEventListener('change', updateSettings);
+    elements.pageMode.addEventListener('change', handlePageModeChange);
+    elements.pageRange.addEventListener('input', updateSettings);
     elements.removeComments.addEventListener('change', updateSettings);
     elements.removeEmptyLines.addEventListener('change', updateSettings);
     
     // 生成按钮
     elements.generateBtn.addEventListener('click', handleGenerate);
+}
+
+// 处理页码模式变更
+function handlePageModeChange() {
+    const pageMode = elements.pageMode.value;
+    
+    if (pageMode === 'custom') {
+        elements.customPageRange.style.display = 'block';
+    } else {
+        elements.customPageRange.style.display = 'none';
+    }
+    
+    updateSettings();
 }
 
 // 处理文件选择
@@ -304,10 +321,15 @@ function updatePreview(parseResult) {
     let outputPages = totalPages;
     let pageRangeText = '';
 
-    if (currentSettings.pageMode === 'partial' && totalPages > 60) {
-        outputPages = 60; // 前30页 + 后30页
-        const backStartPage = totalPages - 29; // 后30页起始页码
-        pageRangeText = ` (1-30页 + ${backStartPage}-${totalPages}页，共${totalPages}页)`;
+    if (currentSettings.pageMode === 'custom' && currentSettings.pageRange) {
+        try {
+            const customPages = parsePageRange(currentSettings.pageRange, totalPages);
+            outputPages = customPages.length;
+            pageRangeText = ` (自定义页码：${currentSettings.pageRange}，输出${outputPages}页)`;
+        } catch (error) {
+            pageRangeText = ` (页码范围格式错误)`;
+            outputPages = 0;
+        }
     } else {
         pageRangeText = ` (全部页面)`;
     }
@@ -325,6 +347,7 @@ function updateSettings() {
     currentSettings.linesPerPage = parseInt(elements.linesPerPage.value);
     currentSettings.headerText = elements.headerText.value;
     currentSettings.pageMode = elements.pageMode.value;
+    currentSettings.pageRange = elements.pageRange.value;
     currentSettings.removeComments = elements.removeComments.checked;
     currentSettings.removeEmptyLines = elements.removeEmptyLines.checked;
     
@@ -332,6 +355,44 @@ function updateSettings() {
     if (selectedFiles.length > 0) {
         parseAndPreview();
     }
+}
+
+// 解析页码范围字符串
+function parsePageRange(rangeStr, totalPages) {
+    const pages = [];
+    const ranges = rangeStr.split(',');
+    
+    for (const range of ranges) {
+        const trimmedRange = range.trim();
+        
+        if (trimmedRange.includes('-')) {
+            // 处理范围，如 "1-20"
+            const [start, end] = trimmedRange.split('-').map(num => parseInt(num.trim()));
+            
+            if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
+                throw new Error(`无效的页码范围: ${trimmedRange}`);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                if (!pages.includes(i)) {
+                    pages.push(i);
+                }
+            }
+        } else {
+            // 处理单个页码，如 "5"
+            const page = parseInt(trimmedRange);
+            
+            if (isNaN(page) || page < 1 || page > totalPages) {
+                throw new Error(`无效的页码: ${trimmedRange}`);
+            }
+            
+            if (!pages.includes(page)) {
+                pages.push(page);
+            }
+        }
+    }
+    
+    return pages.sort((a, b) => a - b);
 }
 
 // 生成文档

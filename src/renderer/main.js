@@ -319,27 +319,53 @@ function updatePreview(parseResult) {
 
     // 根据页码模式计算实际输出页数和页码范围
     let outputPages = totalPages;
+    let outputLines = totalLines;
     let pageRangeText = '';
 
     if (currentSettings.pageMode === 'custom' && currentSettings.pageRange) {
         try {
             const customPages = parsePageRange(currentSettings.pageRange, totalPages);
             outputPages = customPages.length;
+            
+            // 计算自定义页码范围对应的实际行数
+            outputLines = calculateCustomPageLines(customPages, totalLines, currentSettings.linesPerPage);
+            
             pageRangeText = ` (自定义页码：${currentSettings.pageRange}，输出${outputPages}页)`;
         } catch (error) {
             pageRangeText = ` (页码范围格式错误)`;
             outputPages = 0;
+            outputLines = 0;
         }
     } else {
         pageRangeText = ` (全部页面)`;
     }
 
-    elements.previewLines.textContent = totalLines;
+    elements.previewLines.textContent = outputLines;
     elements.estimatedPages.textContent = `${outputPages}页输出${pageRangeText}`;
 
     // 显示前几行作为预览
     const previewLines = parseResult.content.split('\n').slice(0, 20);
     elements.previewContent.textContent = previewLines.join('\n') + '\n...(更多内容)';
+}
+
+/**
+ * 计算自定义页码范围对应的实际行数
+ * @param {Array} customPages - 自定义页码数组
+ * @param {number} totalLines - 总行数
+ * @param {number} linesPerPage - 每页行数
+ * @returns {number} 实际行数
+ */
+function calculateCustomPageLines(customPages, totalLines, linesPerPage) {
+    let actualLines = 0;
+    
+    customPages.forEach(pageNum => {
+        const startLine = (pageNum - 1) * linesPerPage;
+        const endLine = Math.min(startLine + linesPerPage, totalLines);
+        const pageLines = endLine - startLine;
+        actualLines += pageLines;
+    });
+    
+    return actualLines;
 }
 
 // 更新设置

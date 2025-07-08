@@ -50,7 +50,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/leastbit/SourceCodeDoc.git
+git clone https://github.com/LeastBit/SourceCodeDoc.git
 cd SourceCodeDoc
 ```
 

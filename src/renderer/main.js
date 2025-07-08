@@ -38,8 +38,39 @@ const elements = {
     statusText: document.getElementById('statusText')
 };
 
+// 检查必需的DOM元素是否存在
+function checkRequiredElements() {
+    const requiredElements = [
+        'selectFiles', 'selectFolder', 'clearSelection', 'dropZone',
+        'pathList', 'pathItems', 'fileList', 'fileItems', 'fileCount', 'totalLines',
+        'linesPerPage', 'headerText', 'pageMode', 'removeComments', 'removeEmptyLines',
+        'preview', 'previewContent', 'estimatedPages', 'previewLines', 'generateBtn',
+        'progressModal', 'progressText', 'statusText'
+    ];
+
+    const missingElements = [];
+    for (const elementName of requiredElements) {
+        if (!elements[elementName]) {
+            missingElements.push(elementName);
+        }
+    }
+
+    if (missingElements.length > 0) {
+        console.error('缺少必需的DOM元素:', missingElements);
+        showError(`页面初始化失败，缺少元素: ${missingElements.join(', ')}`);
+        return false;
+    }
+
+    return true;
+}
+
 // 初始化事件监听器
 function initializeEventListeners() {
+    // 检查必需元素
+    if (!checkRequiredElements()) {
+        return;
+    }
+
     // 文件选择按钮
     elements.selectFiles.addEventListener('click', handleSelectFiles);
     elements.selectFolder.addEventListener('click', handleSelectFolder);
@@ -192,7 +223,9 @@ function handleClearSelection() {
     updatePathList();
     updateFileList();
     elements.preview.style.display = 'none';
-    elements.generateBtn.disabled = true;
+    if (elements.generateBtn) {
+        elements.generateBtn.disabled = true;
+    }
     elements.clearSelection.style.display = 'none';
 
     updateStatus('已清空所有选择');
@@ -210,6 +243,44 @@ function removePath(pathToRemove) {
     } else {
         handleClearSelection();
     }
+}
+
+// 移除单个文件
+function removeFile(filePathToRemove) {
+    console.log('removeFile called with:', filePathToRemove);
+    console.log('Current selectedFiles count:', selectedFiles.length);
+
+    // 记录移除前的文件数量
+    const beforeCount = selectedFiles.length;
+
+    // 从selectedFiles数组中移除指定文件
+    selectedFiles = selectedFiles.filter(file => {
+        const shouldKeep = file.path !== filePathToRemove;
+        if (!shouldKeep) {
+            console.log('Removing file:', file.path);
+        }
+        return shouldKeep;
+    });
+
+    const afterCount = selectedFiles.length;
+    console.log('Files removed:', beforeCount - afterCount);
+
+    // 更新文件列表显示
+    updateFileList();
+
+    // 重新解析和预览
+    if (selectedFiles.length > 0) {
+        parseAndPreview();
+    } else {
+        // 如果没有文件了，隐藏预览
+        elements.preview.style.display = 'none';
+        if (elements.generateBtn) {
+            elements.generateBtn.disabled = true;
+        }
+        parsedCode = '';
+    }
+
+    updateStatus(`已移除文件，剩余 ${selectedFiles.length} 个文件`);
 }
 
 // 更新路径列表显示
@@ -247,15 +318,45 @@ function updateFileList() {
 
     let totalLines = 0;
 
-    selectedFiles.forEach(file => {
+    selectedFiles.forEach((file, index) => {
         const item = document.createElement('div');
         item.className = 'file-item';
-        item.innerHTML = `
-            <span class="file-icon">📄</span>
-            <span class="file-name">${file.name}</span>
-            <span class="file-path">${file.path}</span>
-            <span class="file-lines">${file.lines || 0} 行</span>
-        `;
+
+        // 创建删除按钮，使用事件监听器而不是onclick属性
+        const removeButton = document.createElement('button');
+        removeButton.className = 'remove-file';
+        removeButton.textContent = '删除';
+        removeButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Delete button clicked for file:', file.path);
+            removeFile(file.path);
+        });
+
+        // 创建其他元素
+        const fileIcon = document.createElement('span');
+        fileIcon.className = 'file-icon';
+        fileIcon.textContent = '📄';
+
+        const fileName = document.createElement('span');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name;
+
+        const filePath = document.createElement('span');
+        filePath.className = 'file-path';
+        filePath.textContent = file.path;
+
+        const fileLines = document.createElement('span');
+        fileLines.className = 'file-lines';
+        fileLines.textContent = `${file.lines || 0} 行`;
+
+        // 组装元素
+        item.appendChild(fileIcon);
+        item.appendChild(fileName);
+        item.appendChild(filePath);
+        item.appendChild(fileLines);
+        item.appendChild(removeButton);
+
         elements.fileItems.appendChild(item);
         totalLines += file.lines || 0;
     });
@@ -268,7 +369,9 @@ function updateFileList() {
 async function parseAndPreview() {
     if (selectedFiles.length === 0) {
         elements.preview.style.display = 'none';
-        elements.generateBtn.disabled = true;
+        if (elements.generateBtn) {
+            elements.generateBtn.disabled = true;
+        }
         return;
     }
     
@@ -284,7 +387,9 @@ async function parseAndPreview() {
         parsedCode = result.content;
         
         updatePreview(result);
-        elements.generateBtn.disabled = false;
+        if (elements.generateBtn) {
+            elements.generateBtn.disabled = false;
+        }
         
         hideProgress();
     } catch (error) {
@@ -401,6 +506,7 @@ function showSuccess(message) {
 
 // 将函数暴露到全局作用域
 window.removePath = removePath;
+window.removeFile = removeFile;
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {

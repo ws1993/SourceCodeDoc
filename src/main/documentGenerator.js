@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { Document, Packer, Paragraph, TextRun, Header, Footer, PageNumber, AlignmentType, PageNumberStart, SectionType } = require('docx');
+const { Document, Packer, Paragraph, TextRun, Header, Footer, PageNumber, AlignmentType } = require('docx');
 
 /**
  * 生成文档
@@ -12,141 +12,19 @@ async function generateDocument(options) {
         content,
         savePath,
         linesPerPage = 50,
-        headerText = '源程序V1.0',
-        pageMode = 'all'
+        headerText = '源程序V1.0'
     } = options;
 
-    // 处理页码模式
-    const processedResult = processContentByPageMode(content, linesPerPage, pageMode);
-
-    // 只生成Word文档
-    await generateWord(processedResult.content, savePath, {
+    // 直接生成Word文档
+    await generateWord(content, savePath, {
         linesPerPage,
-        headerText,
-        pageMode,
-        pageInfo: processedResult
+        headerText
     });
 }
 
-/**
- * 根据页码模式处理内容
- * @param {string} content - 原始内容
- * @param {number} linesPerPage - 每页行数
- * @param {string} pageMode - 页码模式
- * @returns {Object} 处理结果包含内容和页码信息
- */
-function processContentByPageMode(content, linesPerPage, pageMode) {
-    const lines = content.split('\n');
 
-    // 先计算完整文档的页面分布
-    const pageDistribution = calculatePageDistribution(lines, linesPerPage);
-    const totalPages = pageDistribution.totalPages;
 
-    if (pageMode === 'partial' && totalPages > 60) {
-        // 前30页 + 后30页模式
-        // 提取前30页的内容
-        const firstPageContent = extractPagesContent(pageDistribution, 1, 30);
 
-        // 计算后30页的起始页码
-        const backStartPage = totalPages - 29; // 后30页从第(总页数-29)页开始
-
-        // 提取后30页的内容
-        const lastPageContent = extractPagesContent(pageDistribution, backStartPage, totalPages);
-
-        return {
-            content: [...firstPageContent, ...lastPageContent].join('\n'),
-            totalPages: totalPages,
-            outputPages: 60,
-            pageRanges: [
-                { start: 1, end: 30, content: firstPageContent },
-                { start: backStartPage, end: totalPages, content: lastPageContent }
-            ]
-        };
-    }
-
-    // 全部页面或总页数不超过60页
-    return {
-        content: content,
-        totalPages: totalPages,
-        outputPages: totalPages,
-        pageRanges: [{ start: 1, end: totalPages, content: lines }]
-    };
-}
-
-/**
- * 计算页面分布
- * @param {string[]} lines - 所有行
- * @param {number} linesPerPage - 每页行数
- * @returns {Object} 页面分布信息
- */
-function calculatePageDistribution(lines, linesPerPage) {
-    const pages = [];
-    let currentPage = 1;
-    let currentLineInPage = 0;
-    let pageStartIndex = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 跳过完全空白的行，但记录它们的位置
-        if (!line || line.trim() === '') {
-            continue;
-        }
-
-        // 检查是否需要分页
-        if (currentLineInPage >= linesPerPage && currentLineInPage > 0) {
-            // 保存当前页的信息
-            pages.push({
-                pageNumber: currentPage,
-                startIndex: pageStartIndex,
-                endIndex: i - 1,
-                lines: lines.slice(pageStartIndex, i)
-            });
-
-            // 开始新页
-            currentPage++;
-            currentLineInPage = 0;
-            pageStartIndex = i;
-        }
-
-        currentLineInPage++;
-    }
-
-    // 添加最后一页
-    if (pageStartIndex < lines.length) {
-        pages.push({
-            pageNumber: currentPage,
-            startIndex: pageStartIndex,
-            endIndex: lines.length - 1,
-            lines: lines.slice(pageStartIndex)
-        });
-    }
-
-    return {
-        totalPages: currentPage,
-        pages: pages,
-        allLines: lines
-    };
-}
-
-/**
- * 提取指定页面范围的内容
- * @param {Object} pageDistribution - 页面分布信息
- * @param {number} startPage - 起始页码
- * @param {number} endPage - 结束页码
- * @returns {string[]} 提取的行内容
- */
-function extractPagesContent(pageDistribution, startPage, endPage) {
-    const extractedLines = [];
-
-    for (const page of pageDistribution.pages) {
-        if (page.pageNumber >= startPage && page.pageNumber <= endPage) {
-            extractedLines.push(...page.lines);
-        }
-    }
-
-    return extractedLines;
-}
 
 /**
  * 生成Word文档
@@ -155,25 +33,7 @@ function extractPagesContent(pageDistribution, startPage, endPage) {
  * @param {Object} options - 选项
  */
 async function generateWord(content, savePath, options) {
-    const { linesPerPage, headerText, pageMode, pageInfo } = options;
-
-    if (pageMode === 'partial' && pageInfo && pageInfo.pageRanges && pageInfo.pageRanges.length === 2) {
-        // 前30页+后30页模式，使用多section结构
-        await generateWordWithMultipleSections(content, savePath, options);
-    } else {
-        // 全部页面模式，使用单section结构
-        await generateWordWithSingleSection(content, savePath, options);
-    }
-}
-
-/**
- * 生成单section的Word文档（全部页面模式）
- * @param {string} content - 代码内容
- * @param {string} savePath - 保存路径
- * @param {Object} options - 选项
- */
-async function generateWordWithSingleSection(content, savePath, options) {
-    const { linesPerPage, headerText, pageInfo } = options;
+    const { linesPerPage, headerText } = options;
 
     // 分割内容为行
     const lines = content.split('\n');
@@ -190,13 +50,12 @@ async function generateWordWithSingleSection(content, savePath, options) {
     const fontSize = Math.max(18, Math.min(30, Math.floor(lineSpacing / 50)));
 
     // 创建段落数组
-    const paragraphResult = createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing, pageInfo);
+    const paragraphResult = createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing);
     const paragraphs = paragraphResult.paragraphs;
     const realActualPages = paragraphResult.actualPages;
 
     // 创建页眉页脚，使用实际生成的页数
     const headerFooterOptions = createHeaderFooter(headerText, {
-        ...pageInfo,
         totalPages: realActualPages,
         outputPages: realActualPages
     });
@@ -225,75 +84,7 @@ async function generateWordWithSingleSection(content, savePath, options) {
     await fs.writeFile(savePath, buffer);
 }
 
-/**
- * 生成多section的Word文档（前30页+后30页模式）
- * @param {string} content - 代码内容
- * @param {string} savePath - 保存路径
- * @param {Object} options - 选项
- */
-async function generateWordWithMultipleSections(content, savePath, options) {
-    const { linesPerPage, headerText, pageInfo } = options;
 
-    // 计算行间距和字体大小
-    const availableHeight = 230 * 56.7;
-    const lineSpacing = Math.floor(availableHeight / linesPerPage);
-    const fontSize = Math.max(18, Math.min(30, Math.floor(lineSpacing / 50)));
-
-    const sections = [];
-
-    // 处理每个页面范围
-    for (let rangeIndex = 0; rangeIndex < pageInfo.pageRanges.length; rangeIndex++) {
-        const range = pageInfo.pageRanges[rangeIndex];
-        const rangeContent = Array.isArray(range.content) ? range.content.join('\n') : range.content;
-        const rangeLines = rangeContent.split('\n');
-
-        // 创建该范围的段落
-        const paragraphResult = createParagraphsFromLines(rangeLines, linesPerPage, fontSize, lineSpacing, pageInfo);
-        const paragraphs = paragraphResult.paragraphs;
-
-        // 创建该范围的页眉页脚
-        const headerFooterOptions = createHeaderFooterForRange(headerText, pageInfo, range, rangeIndex);
-
-        // 创建section属性，设置页码起始值
-        const sectionProperties = {
-            page: {
-                margin: {
-                    top: 1080,
-                    right: 1080,
-                    bottom: 1080,
-                    left: 1080
-                }
-            },
-            type: SectionType.NEXT_PAGE
-        };
-
-        // 为不同的section设置页码起始值
-        if (rangeIndex === 1) {
-            // 后30页section，设置页码起始值
-            sectionProperties.pageNumberStart = range.start;
-        } else if (rangeIndex === 0) {
-            // 第一个section，重置页码编号
-            sectionProperties.pageNumberStart = 1;
-        }
-
-        // 创建section
-        const section = {
-            properties: sectionProperties,
-            headers: headerFooterOptions.headers,
-            footers: headerFooterOptions.footers,
-            children: paragraphs
-        };
-
-        sections.push(section);
-    }
-
-    // 创建文档
-    const doc = new Document({ sections });
-
-    // 生成并保存文档
-    const buffer = await Packer.toBuffer(doc);
-    await fs.writeFile(savePath, buffer);
-}
 
 /**
  * 从行数组创建段落数组
@@ -303,7 +94,7 @@ async function generateWordWithMultipleSections(content, savePath, options) {
  * @param {number} lineSpacing - 行间距
  * @returns {Object} 包含段落数组和实际页数的对象
  */
-function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing, pageInfo = null) {
+function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing) {
     const paragraphs = [];
     let currentLineInPage = 0;
     let actualPages = 0;
@@ -352,12 +143,7 @@ function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing, p
     if (contentLineCount === 0) {
         actualPages = 0;
     } else {
-        // 如果有页面信息，使用页面信息中的页数
-        if (pageInfo && pageInfo.outputPages) {
-            actualPages = pageInfo.outputPages;
-        } else {
-            actualPages = Math.ceil(contentLineCount / linesPerPage);
-        }
+        actualPages = Math.ceil(contentLineCount / linesPerPage);
     }
 
     return {
@@ -440,74 +226,7 @@ function createHeaderFooter(headerText, pageInfo) {
     };
 }
 
-/**
- * 为特定范围创建页眉页脚（多section模式）
- * @param {string} headerText - 页眉文本
- * @param {Object} pageInfo - 页码信息
- * @param {Object} range - 当前范围信息
- * @param {number} rangeIndex - 范围索引
- * @returns {Object} 页眉页脚配置
- */
-function createHeaderFooterForRange(headerText, pageInfo, range, rangeIndex) {
-    const totalPages = pageInfo.totalPages;
 
-    // 创建页脚内容
-    let footerChildren;
-
-    if (rangeIndex === 0) {
-        // 前30页：使用正常的页码显示 (1/总页数, 2/总页数, ...)
-        footerChildren = [
-            new TextRun({
-                children: [PageNumber.CURRENT]
-            }),
-            new TextRun({
-                text: `/${totalPages}`
-            })
-        ];
-    } else {
-        // 后30页：由于docx库的限制，我们需要使用不同的方法
-        // 暂时使用标准页码，但在section属性中设置了pageNumberStart
-        // 这应该让Word正确显示页码
-        footerChildren = [
-            new TextRun({
-                children: [PageNumber.CURRENT]
-            }),
-            new TextRun({
-                text: `/${totalPages}`
-            })
-        ];
-    }
-
-    return {
-        headers: {
-            default: new Header({
-                children: [
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: headerText,
-                                font: 'SimSun',
-                                size: 28,
-                                bold: true
-                            })
-                        ],
-                        alignment: AlignmentType.CENTER
-                    })
-                ]
-            })
-        },
-        footers: {
-            default: new Footer({
-                children: [
-                    new Paragraph({
-                        children: footerChildren,
-                        alignment: AlignmentType.CENTER
-                    })
-                ]
-            })
-        }
-    };
-}
 
 module.exports = {
     generateDocument

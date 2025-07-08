@@ -6,7 +6,6 @@ let currentSettings = {
     linesPerPage: 50,
     headerText: '源程序V1.0',
     outputFormat: 'docx',
-    pageMode: 'all',
     removeComments: true,
     removeEmptyLines: true
 };
@@ -25,7 +24,6 @@ const elements = {
     totalLines: document.getElementById('totalLines'),
     linesPerPage: document.getElementById('linesPerPage'),
     headerText: document.getElementById('headerText'),
-    pageMode: document.getElementById('pageMode'),
     removeComments: document.getElementById('removeComments'),
     removeEmptyLines: document.getElementById('removeEmptyLines'),
     preview: document.querySelector('.preview'),
@@ -43,7 +41,7 @@ function checkRequiredElements() {
     const requiredElements = [
         'selectFiles', 'selectFolder', 'clearSelection', 'dropZone',
         'pathList', 'pathItems', 'fileList', 'fileItems', 'fileCount', 'totalLines',
-        'linesPerPage', 'headerText', 'pageMode', 'removeComments', 'removeEmptyLines',
+        'linesPerPage', 'headerText', 'removeComments', 'removeEmptyLines',
         'preview', 'previewContent', 'estimatedPages', 'previewLines', 'generateBtn',
         'progressModal', 'progressText', 'statusText'
     ];
@@ -84,7 +82,6 @@ function initializeEventListeners() {
     // 设置变更
     elements.linesPerPage.addEventListener('change', updateSettings);
     elements.headerText.addEventListener('input', updateSettings);
-    elements.pageMode.addEventListener('change', updateSettings);
     elements.removeComments.addEventListener('change', updateSettings);
     elements.removeEmptyLines.addEventListener('change', updateSettings);
     
@@ -405,20 +402,8 @@ function updatePreview(parseResult) {
     const totalLines = parseResult.totalLines;
     const totalPages = Math.ceil(totalLines / currentSettings.linesPerPage);
 
-    // 根据页码模式计算实际输出页数和页码范围
-    let outputPages = totalPages;
-    let pageRangeText = '';
-
-    if (currentSettings.pageMode === 'partial' && totalPages > 60) {
-        outputPages = 60; // 前30页 + 后30页
-        const backStartPage = totalPages - 29; // 后30页起始页码
-        pageRangeText = ` (1-30页 + ${backStartPage}-${totalPages}页，共${totalPages}页)`;
-    } else {
-        pageRangeText = ` (全部页面)`;
-    }
-
     elements.previewLines.textContent = totalLines;
-    elements.estimatedPages.textContent = `${outputPages}页输出${pageRangeText}`;
+    elements.estimatedPages.textContent = `${totalPages}页`;
 
     // 显示前几行作为预览
     const previewLines = parseResult.content.split('\n').slice(0, 20);
@@ -429,10 +414,9 @@ function updatePreview(parseResult) {
 function updateSettings() {
     currentSettings.linesPerPage = parseInt(elements.linesPerPage.value);
     currentSettings.headerText = elements.headerText.value;
-    currentSettings.pageMode = elements.pageMode.value;
     currentSettings.removeComments = elements.removeComments.checked;
     currentSettings.removeEmptyLines = elements.removeEmptyLines.checked;
-    
+
     // 重新解析和预览
     if (selectedFiles.length > 0) {
         parseAndPreview();

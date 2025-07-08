@@ -37,30 +37,33 @@ async function generateDocument(options) {
  */
 function processContentByPageMode(content, linesPerPage, pageMode) {
     const lines = content.split('\n');
-    const totalPages = Math.ceil(lines.length / linesPerPage);
-    
+
+    // 先计算完整文档的页面分布
+    const pageDistribution = calculatePageDistribution(lines, linesPerPage);
+    const totalPages = pageDistribution.totalPages;
+
     if (pageMode === 'partial' && totalPages > 60) {
-        // 前30页 + 后30页
-        const firstPartEnd = 30 * linesPerPage;
-        const secondPartStart = lines.length - (30 * linesPerPage);
-        
-        const firstPart = lines.slice(0, firstPartEnd);
-        const secondPart = lines.slice(secondPartStart);
-        
+        // 前30页 + 后30页模式
+        // 提取前30页的内容
+        const firstPageContent = extractPagesContent(pageDistribution, 1, 30);
+
         // 计算后30页的起始页码
         const backStartPage = totalPages - 29; // 后30页从第(总页数-29)页开始
-        
+
+        // 提取后30页的内容
+        const lastPageContent = extractPagesContent(pageDistribution, backStartPage, totalPages);
+
         return {
-            content: [...firstPart, ...secondPart].join('\n'),
+            content: [...firstPageContent, ...lastPageContent].join('\n'),
             totalPages: totalPages,
             outputPages: 60,
             pageRanges: [
-                { start: 1, end: 30, content: firstPart },
-                { start: backStartPage, end: totalPages, content: secondPart }
+                { start: 1, end: 30, content: firstPageContent },
+                { start: backStartPage, end: totalPages, content: lastPageContent }
             ]
         };
     }
-    
+
     // 全部页面或总页数不超过60页
     return {
         content: content,
@@ -68,6 +71,81 @@ function processContentByPageMode(content, linesPerPage, pageMode) {
         outputPages: totalPages,
         pageRanges: [{ start: 1, end: totalPages, content: lines }]
     };
+}
+
+/**
+ * 计算页面分布
+ * @param {string[]} lines - 所有行
+ * @param {number} linesPerPage - 每页行数
+ * @returns {Object} 页面分布信息
+ */
+function calculatePageDistribution(lines, linesPerPage) {
+    const pages = [];
+    let currentPage = 1;
+    let currentLineInPage = 0;
+    let pageStartIndex = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // 跳过完全空白的行，但记录它们的位置
+        if (!line || line.trim() === '') {
+            continue;
+        }
+
+        // 检查是否需要分页
+        if (currentLineInPage >= linesPerPage && currentLineInPage > 0) {
+            // 保存当前页的信息
+            pages.push({
+                pageNumber: currentPage,
+                startIndex: pageStartIndex,
+                endIndex: i - 1,
+                lines: lines.slice(pageStartIndex, i)
+            });
+
+            // 开始新页
+            currentPage++;
+            currentLineInPage = 0;
+            pageStartIndex = i;
+        }
+
+        currentLineInPage++;
+    }
+
+    // 添加最后一页
+    if (pageStartIndex < lines.length) {
+        pages.push({
+            pageNumber: currentPage,
+            startIndex: pageStartIndex,
+            endIndex: lines.length - 1,
+            lines: lines.slice(pageStartIndex)
+        });
+    }
+
+    return {
+        totalPages: currentPage,
+        pages: pages,
+        allLines: lines
+    };
+}
+
+/**
+ * 提取指定页面范围的内容
+ * @param {Object} pageDistribution - 页面分布信息
+ * @param {number} startPage - 起始页码
+ * @param {number} endPage - 结束页码
+ * @returns {string[]} 提取的行内容
+ */
+function extractPagesContent(pageDistribution, startPage, endPage) {
+    const extractedLines = [];
+
+    for (const page of pageDistribution.pages) {
+        if (page.pageNumber >= startPage && page.pageNumber <= endPage) {
+            extractedLines.push(...page.lines);
+        }
+    }
+
+    return extractedLines;
 }
 
 /**
@@ -112,7 +190,7 @@ async function generateWordWithSingleSection(content, savePath, options) {
     const fontSize = Math.max(18, Math.min(30, Math.floor(lineSpacing / 50)));
 
     // 创建段落数组
-    const paragraphResult = createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing);
+    const paragraphResult = createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing, pageInfo);
     const paragraphs = paragraphResult.paragraphs;
     const realActualPages = paragraphResult.actualPages;
 
@@ -170,7 +248,7 @@ async function generateWordWithMultipleSections(content, savePath, options) {
         const rangeLines = rangeContent.split('\n');
 
         // 创建该范围的段落
-        const paragraphResult = createParagraphsFromLines(rangeLines, linesPerPage, fontSize, lineSpacing);
+        const paragraphResult = createParagraphsFromLines(rangeLines, linesPerPage, fontSize, lineSpacing, pageInfo);
         const paragraphs = paragraphResult.paragraphs;
 
         // 创建该范围的页眉页脚
@@ -217,7 +295,7 @@ async function generateWordWithMultipleSections(content, savePath, options) {
  * @param {number} lineSpacing - 行间距
  * @returns {Object} 包含段落数组和实际页数的对象
  */
-function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing) {
+function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing, pageInfo = null) {
     const paragraphs = [];
     let currentLineInPage = 0;
     let actualPages = 0;
@@ -266,7 +344,12 @@ function createParagraphsFromLines(lines, linesPerPage, fontSize, lineSpacing) {
     if (contentLineCount === 0) {
         actualPages = 0;
     } else {
-        actualPages = Math.ceil(contentLineCount / linesPerPage);
+        // 如果有页面信息，使用页面信息中的页数
+        if (pageInfo && pageInfo.outputPages) {
+            actualPages = pageInfo.outputPages;
+        } else {
+            actualPages = Math.ceil(contentLineCount / linesPerPage);
+        }
     }
 
     return {

@@ -3,13 +3,10 @@
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node.js](https://img.shields.io/badge/node.js-%3E%3D14.0.0-brightgreen.svg)
-![Electron](https://img.shields.io/badge/electron-27.0.0-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 
 **专为软件著作权申请设计的源代码文档自动生成工具**
 
-[功能特点](#-功能特点) • [快速开始](#-快速开始) • [使用指南](#-使用指南) • [开发文档](#-开发文档)
+[功能特点](#-功能特点） • [快速开始](#-快速开始） • [使用指南](#-使用指南） • [开发文档](#-开发文档)
 
 </div>
 
@@ -17,8 +14,8 @@
 
 ## 🎯 项目简介
 
-源程序文档生成软件是一个专业的源代码文档生成工具，专为软件著作权申请而设计。它能够将源代码文件自动转换为符合软件著作权申请要求的Word文档格式，大大简化了文档准备工作。
-![img.png](img.png)
+源程序文档生成软件是一个专业的源代码文档生成工具，专为软件著作权申请而设计。它能够将源代码文件自动转换为符合软件著作权申请要求的 Word 文档格式，大大简化了文档准备工作。
+![1751954129790](image/README/1751954129790.png)
 
 ## ✨ 功能特点
 
@@ -32,12 +29,11 @@
 
 ### 🖥️ 界面选择
 
-- **图形界面（GUI）**：基于Electron的现代化界面，操作直观
-- **命令行界面（CLI）**：支持脚本自动化，适合批量处理
+- **图形界面（GUI）**：基于 Electron 的现代化界面，操作直观
 
 ### 📄 输出格式
 
-- **Word文档**：生成标准的.docx格式文档
+- **Word 文档**：生成标准的。docx 格式文档
 - **页码控制**：智能页码模式，优化大文件处理
 - **内容结构**：保持源代码原有结构和格式
 
@@ -45,57 +41,22 @@
 
 ### 📋 环境要求
 
-- **Node.js** >= 14.0.0
-- **npm** 或 **yarn**
-- **操作系统**：Windows / macOS / Linux
+- **操作系统**：Windows
 
 ### 📦 安装步骤
 
-1. **克隆项目**
+去发行版下载安装包，免安装的，解压压缩包，点击直接运行
 
-```bash
-git clone https://github.com/leastbit/SourceCodeDoc.git
-cd SourceCodeDoc
-```
-
-2. **安装依赖**
-
-```bash
-npm install
-```
-
-3. **启动应用**
-
-**图形界面版本：**
-
-```bash
-npm start
-```
-
-**命令行版本：**
-
-```bash
-node cli.js --help
-```
+![1751954033986](image/README/1751954033986.png)
 
 ### 🎯 快速体验
 
 **使用图形界面：**
 
-1. 运行 `npm start` 启动应用
+1. 双击源程序 Word 文档生成器
 2. 点击"选择文件"或"选择文件夹"
 3. 配置文档设置（可选）
 4. 点击"生成文档"
-
-**使用命令行：**
-
-```bash
-# 基础用法
-node cli.js input.txt
-
-# 完整参数示例
-node cli.js src/main.js --output result.docx --lines 45 --header "我的项目V1.0" --mode partial
-```
 
 ## 📖 使用指南
 
@@ -109,29 +70,12 @@ node cli.js src/main.js --output result.docx --lines 45 --header "我的项目V1
 
 #### 文档设置
 
-- **每页行数**：设置每页显示的代码行数（默认：50行）
-- **页眉文本**：自定义页眉内容（默认：）
+- **每页行数**：设置每页显示的代码行数（默认：50 行）
+- **页眉文本**：自定义页眉内容（默认：''）
 - **页码模式**：
+
   - `全部页面`：生成所有页面
-  - `前后30页`：当总页数超过60页时，只生成前30页和后30页
-
-### 💻 命令行使用
-
-#### 基本语法
-
-```bash
-node cli.js <输入文件路径> [选项]
-```
-
-#### 参数说明
-
-| 参数                | 说明                 | 默认值          | 示例                     |
-| ------------------- | -------------------- | --------------- | ------------------------ |
-| `<输入文件路径>`  | 必需，源代码文件路径 | -               | `src/main.js`          |
-| `--output <路径>` | 输出文件路径         | `output.docx` | `--output result.docx` |
-| `--lines <数量>`  | 每页行数             | `50`          | `--lines 45`           |
-| `--header <文本>` | 页眉文本             | ``              | `--header "项目V2.0"`  |
-| `--mode <模式>`   | 页码模式             | `all`         | `--mode partial`       |
+  - `自定义页码范围`：可以自己按需求，选择对应的页面
 
 ## 🏗️ 项目结构
 
@@ -146,7 +90,7 @@ node cli.js <输入文件路径> [选项]
 │       ├── 📄 index.html         # 主界面
 │       ├── 📄 main.js           # 界面逻辑
 │       └── 📄 style.css         # 样式文件
-├── 📄 main.js                 # Electron主进程入口
+├── 📄 main.js                 # Electron 主进程入口
 ├── 📄 cli.js                  # 命令行入口
 ├── 📄 preload.js              # 预加载脚本
 ├── 📄 package.json            # 项目配置
@@ -163,7 +107,7 @@ node cli.js <输入文件路径> [选项]
 
 #### 📝 documentGenerator.js
 
-核心文档生成模块，使用docx库生成Word文档，处理分页、格式化等功能。
+核心文档生成模块，使用 docx 库生成 Word 文档，处理分页、格式化等功能。
 
 #### 📂 fileHandler.js
 
@@ -200,18 +144,7 @@ A: 本工具生成的文档格式符合一般要求，但建议：
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-## 🙏 致谢
+**本项目基于以下项目修改而来，做了一些定制化改造**
 
-感谢以下开源项目：
+[LeastBit/SourceCodeDoc: 专为软件著作权申请设计的源代码自动转 Word 文档工具，支持智能分页、格式优化、批量处理，提供 GUI 与 CLI 两种操作方式，输出标准 docx 格式，适配多种编程语言。](https://github.com/LeastBit/SourceCodeDoc)
 
-- [Electron](https://electronjs.org/) - 跨平台桌面应用框架
-- [docx](https://github.com/dolanmiu/docx) - Word文档生成库
-- [fs-extra](https://github.com/jprichardson/node-fs-extra) - 文件系统操作增强
-
-<div align="center">
-
-**如果这个项目对您有帮助，请给我们一个 ⭐ Star！**
-
-Made with ❤️ by [leastbit](https://github.com/leastbit)
-
-</div>

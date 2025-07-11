@@ -11,6 +11,8 @@
 
 [功能特点](#-功能特点) • [快速开始](#-快速开始) • [使用指南](#-使用指南) • [开发文档](#-开发文档)
 
+B站使用教程链接：https://www.bilibili.com/video/BV1DMGpzbEqr/?spm_id_from=333.1387.homepage.video_card.click&vd_source=33afd104a41faf98cb6a859069c293b4
+
 </div>
 
 ---

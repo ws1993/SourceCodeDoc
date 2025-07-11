@@ -9,13 +9,12 @@
 
 **专为软件著作权申请设计的源代码文档自动生成工具**
 
-[功能特点](#-功能特点) • [快速开始](#-快速开始) • [使用指南](#-使用指南) • [开发文档](#-开发文档)
-
-B站使用教程链接：https://www.bilibili.com/video/BV1DMGpzbEqr/?spm_id_from=333.1387.homepage.video_card.click&vd_source=33afd104a41faf98cb6a859069c293b4
+[功能特点](#-功能特点) • [快速开始](#-快速开始) • [使用指南](#-使用指南) • [开发文档](#-开发文档) • [B站教程](https://www.bilibili.com/video/BV1DMGpzbEqr/?spm_id_from=333.1387.homepage.video_card.click&vd_source=33afd104a41faf98cb6a859069c293b4)
 
 </div>
 
 ---
+B站教程：https://www.bilibili.com/video/BV1DMGpzbEqr/?spm_id_from=333.1387.homepage.video_card.click&vd_source=33afd104a41faf98cb6a859069c293b4
 
 ## 🎯 项目简介
 

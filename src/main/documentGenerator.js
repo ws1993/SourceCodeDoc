@@ -290,9 +290,6 @@ function createHeaderFooter(headerText, pageInfo) {
                         children: [
                             new TextRun({
                                 children: [PageNumber.CURRENT]
-                            }),
-                            new TextRun({
-                                text: `/${totalPages}`
                             })
                         ],
                         alignment: AlignmentType.CENTER
